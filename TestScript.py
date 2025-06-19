@@ -4,10 +4,10 @@ import schedule
 import time
 
 # === 1. MySQL Configuration ===
-user = 'root'
-password = '1234'
-host = 'localhost'
-port = '3306'
+user = 'r'
+password = ''
+host = ''
+port = ''
 
 raw_db = 'JnJSourcing'
 clean_db = 'JSourcingCleanData'
