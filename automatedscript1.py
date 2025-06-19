@@ -5,10 +5,10 @@ import time
 import os
 
 # === 1. MySQL Configuration ===
-user = 'root'
-password = '1234'
-host = 'localhost'
-port = '3306'
+user = ''
+password = ''
+host = ''
+port = ''
 
 raw_db = 'JnJSourcing'
 clean_db = 'JSourcingCleanData'
