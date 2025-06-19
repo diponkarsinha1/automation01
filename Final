@@ -22,43 +22,43 @@ def clean_dataframe(df):
     return df
 
 def create_empty_tables(clean_table, agg_table, raw_table):
-    # Define empty DataFrames with expected columns per table (all lowercase)
+    # Define empty DataFrames with exact columns for each table
     if raw_table == 'supplier_information_raw':
-        empty_clean_df = pd.DataFrame(columns=['supplierid', 'suppliername', 'country', 'othercolumns...'])  # adjust columns as needed
-        empty_agg_df = pd.DataFrame(columns=['country', 'suppliercount'])
+        empty_clean_df = pd.DataFrame(columns=['SupplierID', 'SupplierName', 'Country', 'ContactName', 'Phone'])
+        empty_agg_df = pd.DataFrame(columns=['Country', 'SupplierCount'])
     elif raw_table == 'supplier_performance_raw':
-        empty_clean_df = pd.DataFrame(columns=['performanceid', 'supplierid', 'qualityscore', 'othercolumns...'])
-        empty_agg_df = pd.DataFrame(columns=['supplierid', 'avgqualityscore'])
+        empty_clean_df = pd.DataFrame(columns=['PerformanceID', 'SupplierID', 'QualityScore', 'DeliveryScore', 'ReviewDate'])
+        empty_agg_df = pd.DataFrame(columns=['SupplierID', 'AvgQualityScore'])
     elif raw_table == 'sourcing_contracts_raw':
-        empty_clean_df = pd.DataFrame(columns=['contractid', 'supplierid', 'contractvalue', 'othercolumns...'])
-        empty_agg_df = pd.DataFrame(columns=['supplierid', 'totalcontractvalue'])
+        empty_clean_df = pd.DataFrame(columns=['ContractID', 'SupplierID', 'ContractValue', 'StartDate', 'EndDate'])
+        empty_agg_df = pd.DataFrame(columns=['SupplierID', 'TotalContractValue'])
     elif raw_table == 'purchase_orders_raw':
-        empty_clean_df = pd.DataFrame(columns=['po_id', 'currency', 'total_amount', 'othercolumns...'])
-        empty_agg_df = pd.DataFrame(columns=['currency', 'totalspend'])
+        empty_clean_df = pd.DataFrame(columns=['PO_ID', 'SupplierID', 'Currency', 'Total_Amount', 'OrderDate'])
+        empty_agg_df = pd.DataFrame(columns=['Currency', 'TotalSpend'])
     elif raw_table == 'purchase_order_details_raw':
-        empty_clean_df = pd.DataFrame(columns=['podetailid', 'itemid', 'quantity', 'othercolumns...'])
-        empty_agg_df = pd.DataFrame(columns=['itemid', 'totalquantity'])
+        empty_clean_df = pd.DataFrame(columns=['PODetailID', 'PO_ID', 'ItemID', 'Quantity', 'UnitPrice'])
+        empty_agg_df = pd.DataFrame(columns=['ItemID', 'TotalQuantity'])
     elif raw_table == 'spend_analysis_raw':
-        empty_clean_df = pd.DataFrame(columns=['spendid', 'category', 'amount_spend', 'othercolumns...'])
-        empty_agg_df = pd.DataFrame(columns=['category', 'totalspend'])
+        empty_clean_df = pd.DataFrame(columns=['SpendID', 'Category', 'Amount_Spend', 'SpendDate'])
+        empty_agg_df = pd.DataFrame(columns=['Category', 'TotalSpend'])
     else:
         empty_clean_df = pd.DataFrame()
         empty_agg_df = pd.DataFrame()
 
     empty_clean_df.to_sql(clean_table, clean_engine, if_exists='replace', index=False)
     empty_agg_df.to_sql(agg_table, clean_engine, if_exists='replace', index=False)
-    print(f"⚠️ Created empty `{clean_table}` and `{agg_table}` tables because raw table `{raw_table}` does not exist.")
+    print(f"⚠️ Created empty `{clean_table}` and `{agg_table}` tables because raw table `{raw_table}` does not exist or is empty.")
 
 def etl_clean_and_sync():
     print("\n🔄 Starting ETL clean and sync of all raw tables...")
 
     table_configs = {
-        'supplier_information_raw': ('supplierid', 'supplier_information', 'agg_suppliercountbycountry'),
-        'supplier_performance_raw': ('performanceid', 'supplier_performance', 'agg_avgqualityscorebysupplier'),
-        'sourcing_contracts_raw': ('contractid', 'sourcing_contracts', 'agg_totalcontractvaluebysupplier'),
-        'purchase_orders_raw': ('po_id', 'purchase_orders', 'agg_totalspendbycurrency'),
-        'purchase_order_details_raw': ('podetailid', 'purchase_order_details', 'agg_totalquantitybyitem'),
-        'spend_analysis_raw': ('spendid', 'spend_analysis', 'agg_totalspendbycategory')
+        'supplier_information_raw': ('SupplierID', 'supplier_information', 'agg_suppliercountbycountry'),
+        'supplier_performance_raw': ('PerformanceID', 'supplier_performance', 'agg_avgqualityscorebysupplier'),
+        'sourcing_contracts_raw': ('ContractID', 'sourcing_contracts', 'agg_totalcontractvaluebysupplier'),
+        'purchase_orders_raw': ('PO_ID', 'purchase_orders', 'agg_totalspendbycurrency'),
+        'purchase_order_details_raw': ('PODetailID', 'purchase_order_details', 'agg_totalquantitybyitem'),
+        'spend_analysis_raw': ('SpendID', 'spend_analysis', 'agg_totalspendbycategory')
     }
 
     for raw_table, (id_col, clean_table, agg_table) in table_configs.items():
@@ -74,30 +74,30 @@ def etl_clean_and_sync():
 
             # Table-specific cleaning & aggregation
             if raw_table == 'supplier_information_raw':
-                df['country'] = df['country'].str.title()
-                agg = df.groupby('country')['supplierid'].nunique().reset_index(name='suppliercount')
+                df['Country'] = df['Country'].str.title()
+                agg = df.groupby('Country')['SupplierID'].nunique().reset_index(name='SupplierCount')
 
             elif raw_table == 'supplier_performance_raw':
-                df['qualityscore'] = pd.to_numeric(df['qualityscore'], errors='coerce')
-                agg = df.groupby('supplierid')['qualityscore'].mean().reset_index(name='avgqualityscore')
+                df['QualityScore'] = pd.to_numeric(df['QualityScore'], errors='coerce')
+                agg = df.groupby('SupplierID')['QualityScore'].mean().reset_index(name='AvgQualityScore')
 
             elif raw_table == 'sourcing_contracts_raw':
-                df['contractvalue'] = pd.to_numeric(df['contractvalue'], errors='coerce')
-                agg = df.groupby('supplierid')['contractvalue'].sum().reset_index(name='totalcontractvalue')
+                df['ContractValue'] = pd.to_numeric(df['ContractValue'], errors='coerce')
+                agg = df.groupby('SupplierID')['ContractValue'].sum().reset_index(name='TotalContractValue')
 
             elif raw_table == 'purchase_orders_raw':
-                df['currency'] = df['currency'].str.upper()
-                df['total_amount'] = pd.to_numeric(df['total_amount'], errors='coerce')
-                agg = df.groupby('currency')['total_amount'].sum().reset_index(name='totalspend')
+                df['Currency'] = df['Currency'].str.upper()
+                df['Total_Amount'] = pd.to_numeric(df['Total_Amount'], errors='coerce')
+                agg = df.groupby('Currency')['Total_Amount'].sum().reset_index(name='TotalSpend')
 
             elif raw_table == 'purchase_order_details_raw':
-                df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce')
-                agg = df.groupby('itemid')['quantity'].sum().reset_index(name='totalquantity')
+                df['Quantity'] = pd.to_numeric(df['Quantity'], errors='coerce')
+                agg = df.groupby('ItemID')['Quantity'].sum().reset_index(name='TotalQuantity')
 
             elif raw_table == 'spend_analysis_raw':
-                df['category'] = df['category'].str.title()
-                df['amount_spend'] = pd.to_numeric(df['amount_spend'], errors='coerce')
-                agg = df.groupby('category')['amount_spend'].sum().reset_index(name='totalspend')
+                df['Category'] = df['Category'].str.title()
+                df['Amount_Spend'] = pd.to_numeric(df['Amount_Spend'], errors='coerce')
+                agg = df.groupby('Category')['Amount_Spend'].sum().reset_index(name='TotalSpend')
 
             else:
                 agg = pd.DataFrame()
